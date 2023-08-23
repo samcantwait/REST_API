@@ -1,5 +1,4 @@
 const path = require("path");
-const fs = require("fs");
 require("dotenv").config();
 
 const express = require("express");
@@ -11,6 +10,7 @@ const { graphqlHTTP } = require("express-graphql");
 const graphqlSchema = require("./graphql/schema");
 const graphqlResolver = require("./graphql/resolvers");
 const auth = require("./middleware/auth");
+const { clearImage } = require("./util/file");
 
 const app = express();
 
@@ -19,7 +19,7 @@ const fileStorage = multer.diskStorage({
     cb(null, "images");
   },
   filename: (req, file, cb) => {
-    cb(null, new Date().getTime() + "-" + file.originalname);
+    cb(null, Math.random() + "-" + file.originalname);
   },
 });
 
@@ -63,9 +63,10 @@ app.put("/post-image", (req, res, next) => {
   if (req.body.oldPath) {
     clearImage(req.body.oldPath);
   }
-  return res
-    .status(201)
-    .json({ message: "File stored.", filePath: req.file.path });
+  return res.status(201).json({
+    message: "File stored.",
+    filePath: req.file.path.replace(/\\/g, "/"),
+  });
 });
 
 app.use(
@@ -100,8 +101,3 @@ mongoose
     app.listen(8080, () => console.log("connected to 8080"));
   })
   .catch((err) => console.log(err));
-
-const clearImage = (filePath) => {
-  filePath = path.join(__dirname, "..", filePath);
-  fs.unlink(filePath, (err) => console.log(err));
-};
